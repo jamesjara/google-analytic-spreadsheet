@@ -4,9 +4,13 @@ CREATED BY JAMES JARA www.jamesjara.com #jamesjara
 Get Visits Google Analytic ( magic ) from url value CELL
 help in www.jamesjara.com , Get the visits from your google analytic account from a url value 
 
-Usage:
+Usage For Analytics:
 1. Clicking the button Analytics By Cell URL with a cell selected.
 2. Using the function on the cell =getVisits( CELL )
+
+Usage For Adsense:
+1. Clicking the button Adsense By Cell URL with a cell selected.
+2. Using the function on the cell =getAdsense( CELL )
 
 
 Please if you creates another function send to jamesjara@gmail.com with your name,etc.. to mantain a unique version,
@@ -30,7 +34,7 @@ http://code.google.com/p/google-analytic-spreadsheet/
  */
 function onOpen() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var menuEntries = [ {name: "Get visits of last 3 months", functionName: "getVisits2"}];
+  var menuEntries = [ {name: "Get visits of last 3 months", functionName: "getVisits2"},{name: "Get Earning of last 3 months", functionName: "getAdsense2"}];
   ss.addMenu("Analytics By Cell URL", menuEntries);  
 }
 
@@ -76,19 +80,60 @@ function ValidateURL( URL ){
   var accounts = Analytics.Management.Accounts.list();  
   for (var i = 0; i <= accounts.getItems().length  ; ++i) {   
     var profiles = Analytics.Management.Profiles.list( '~all' , '~all' );
-    if (profiles.getItems()) {    
-      for (var i = 0; i <= accounts.getItems().length  ; ++i) {    
-        var firstProfile = profiles.getItems()[i].getId();
-        var WebsiteUrl = profiles.getItems()[i].getWebsiteUrl();
+    if (profiles.getItems()) {     
+      for (var x = 0; x <= profiles.getItems().length  ; ++x) {
+        if(profiles.getItems()[x]){
+          var firstProfile = profiles.getItems()[x].getId();
+          var WebsiteUrl = profiles.getItems()[x].getWebsiteUrl();
+          Logger.log(WebsiteUrl);
           if ( URL == WebsiteUrl ){
-            return profiles.getItems()[i].getId();
-          } 
-      }           
+            return profiles.getItems()[x].getId();
+          }
+        }
+      }
     } else {
       throw new Error('No profiles found.');
     }
   }  
 }
+
+
+/**
+ * @autor jamesjara
+ * @description  wrapper used to call the function from the button
+ */
+function getAdsense2() {
+     getAdsense(SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getActiveCell().getValue());
+}
+
+
+/**
+ * @autor jamesjara
+ * @description used to get adsense 'EARNINGS', 'CLICKS'  from a custom domain
+ * @param a String with the custom domain
+ * @return last 3 months visits
+ */
+function getAdsense( DOMAIN ){
+  if (DOMAIN == undefined || DOMAIN == null || DOMAIN == "")
+  {
+     throw new Error (" DOMAIN cant be empty.");      
+  }
+  var startDate = getLastNdays(72);   
+  var endDate   = getLastNdays(0);// Today.
+  var args = {
+    'filter':['DOMAIN_NAME=@'+DOMAIN.match(/:\/\/(www[0-9]?\.)?(.[^/:]+)/)[2]],
+    'metric': ['EARNINGS', 'CLICKS'],
+    'dimension': ['MONTH','DOMAIN_NAME']};
+  var report = AdSense.Reports.generate(startDate, endDate, args).getRows();
+  Logger.log(args);
+  if (report){
+    //This is a hack :( because a cell cant logging into Adsense
+    var result = '"'+report[0][2]+','+report[0][3]+'","'+report[1][2]+','+report[1][3]+'","'+report[2][2]+','+report[2][3]+'"';
+    SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getActiveCell().setFormula("=({"+result+"})");
+    return;
+  }  else throw new Error (" No adsense profiles found."); 
+}
+
 
 /**
  * @autor jamesjara
